@@ -1,0 +1,92 @@
+\chapter{Building BeagleSNES}
+
+\section{Overview}\index{Overview}
+
+BeagleSNES is more than just a single application.  It is a complete operating system with a custom Linux kernel, a full file system, and configuration files that tell BeagleSNES how to behave for the end user.  Because of this, it can be sometimes be difficult to get up and running.  This section focuses on building the individual components of BeagleSNES using the build scripts that have been included to assist you.  Unless you are interested in installing/uninstalling/changing configurations/libraries/binaries in the file system, it is probably best to leave the file system as-is and concentrate on modifying only the bootloader, kernel, and BeagleSNES application.
+
+\section{Bootloader}\index{Bootloader}
+
+BeagleSNES's bootloader is a modified version of the v2014.01 release of U-Boot.  The BeagleSNES source code archive for the bootloader is just a \texttt{tar}'d-up version of the hacked-on, working code base of what is running inside of the BeagleSNES system.  Use the following steps to build it:
+
+\begin{itemize}
+\item Install a cross-compiler tool chain on your development system.  BeagleSNES's development was done using a tool chain built using \texttt{crosstool-ng}\footnote{Download \texttt{crosstool-ng} at: \texttt{http://crosstool-ng.org}}, though you could probably install an ARM development tool chain via \texttt{apt-get} or whatever package manager your particular Linux distribution is using.  It is also possible to use the tool chain that is included with the BeagleSNES kernel source.
+\item Edit the \texttt{beaglesnes-build.sh} shell script in the \texttt{beaglesnes\_u-boot} code base to point to the location of your cross-compiler tool chain.  You'll need to modify the \texttt{TOOL\_PATH} and \texttt{TOOL\_CHAIN} variables to point to the path where your tool chain is located and the prefix of each tool chain binary, respectively.  \texttt{crosstool-ng} installs the tool chain in \texttt{\$(HOME)/x-tools}, so that will most likely be the value that you need to set for \texttt{TOOL\_PATH}.  Tool chain binaries are typically named following the format of \texttt{\$TARGET\_ARCH\$TOOL}.  \$TOOL is \texttt{gcc}, \texttt{g++}, etc., and \texttt{\$TARGET\_ARCH} is probably something similar to \texttt{arm-cortex\_a8-linux-gnueabi-}.
+\item Edit the \texttt{beaglesnes-build.sh} shell script to choose to build the bootloader for the BB-xM or the BBB.  To do this, there are two lines in the shell script that build a configuration for \texttt{omap3\_beagle\_config} (BB-xM) and \texttt{am335x\_evm\_config} (BBB).  Uncomment only one of these two lines to select the hardware to build the bootloader for.  The comments in the shell script will guide you.    
+\item Once you have set up your \texttt{beaglesnes-build.sh} script, execute it.  This will start the build process and generate a variety of files in the \texttt{beaglesnes\_u-boot} directory.  The two files that you are interested in are \texttt{MLO} (the first stage bootloader) and \texttt{u-boot.img} (the second stage bootloader that actually loads the kernel).  
+\item Mount the first partition (the boot partition) of a microSD card that has had the full BeagleSNES file system image written to it.  \emph{Back up the \texttt{MLO} and \texttt{u-boot.img} binaries in the root of that mounted partition.} 
+\item Replace the \texttt{MLO} and \texttt{u-boot.img} binaries on the microSD card (\emph{after you have backed them up}) with the \texttt{MLO} and \texttt{u-boot.img} that you just built.
+\item \texttt{sync} the microSD card's mounted boot partition's file system, then unmount it.    
+\end{itemize}
+
+\noindent{}You've just built the BeagleSNES bootloader and installed it.  Insert the microSD card into the system, power it up, and it should now boot using your new bootloader.  Remember that your new bootloader files will be replaced with the stock BeagleSNES ones if you execute the \texttt{setup\_BBB.sh} or \texttt{setup\_BBxM.sh} scripts in the boot partition.
+
+\section{Kernel}\index{Kernel}
+
+BeagleSNES's BB-xM kernel is built from a snapshot of the Linux 3.7.10 kernel branch of Robert Nelson's stable kernel project\footnote{\texttt{https://github.com/RobertCNelson/stable-kernel}} that was retrieved using \texttt{git} on 11 March 2013.  The BBB kernel is built from a snapshot of the 3.8.13 kernel branch from the same project, retrieved on 02 June 2013.  Both of these projects contains a script called \texttt{build\_kernel.sh} that performs a number of useful activities:
+
+\begin{itemize}
+\item Installs a cross-compilation tool chain for building the kernel.
+\item Checks for new kernel patches.
+\item Applies kernel patches (over 200 of them!) to the kernel source tree for all BeagleBoard platforms.
+\item Builds the kernel.
+\end{itemize} 
+ 
+\noindent{}The BeagleSNES kernel source trees contain the \texttt{build\_kernel.sh} file, but it has been modified.  The script no longer checks for kernel patches and updates or downloads the tool chain.  The tool chain is already present in the BeagleSNES kernel source package\footnote{The tool chain is in the \texttt{dl/gcc-linaro-arm-linux-gnueabihf-4.7-2012.12-201214\_linux} directory.}, so there is no need to download it again.  To build one of the kernels, use the following steps:
+
+\begin{itemize}
+\item \emph{Optional:} If you want to rebuild the splash screen that displays during kernel boot, execute the \texttt{build\_beagle\_splash.sh} script.  This will convert the splash screen image file\footnote{\texttt{beaglesnes\_kernel\_splash.png}} into the proper format and then copy it to its place in the kernel source tree.  Note that the splash screen image is different in the two kernel trees.  For BB-xM, it is 640x480.  For BBB, it is 720x480.
+\item Execute the \texttt{build\_kernel.sh} script.
+\item Choose to "Exit" the kernel configuration tool without changing any settings.  \emph{Note: Don't change the configuration unless you know what you are doing!}  The kernel will then begin building, which will take a few minutes.  All generated binaries will be under the \texttt{deploy} directory of the BeagleSNES kernel source.
+\item Mount the first partition (the boot partition) of a microSD card that has had the full BeagleSNES file system image written to it.  \emph{Back up the \texttt{zImage} (BB-xM) or \texttt{3.8.13-bone20.zImage} kernel binary in the root of that mounted partition.} 
+\item Replace the kernel binary on the microSD card (\emph{after you have backed it up}) with the \texttt{deploy/3.7.10-x9.uImage} or \texttt{deploy/3.8.13-bone20.zImage} kernel binary that you just built. Rename the \texttt{3.7.10-x9.uImage} kernel to \texttt{zImage} in the \texttt{/boot} partition.
+\item \texttt{sync} the microSD card's mounted boot partition's file system, then unmount it. 
+\end{itemize}
+
+\noindent{}\emph{Optional:} The BeagleSNES does not load any kernel modules (everything necessary is built directly into the kernel), but if you also want to install the kernel modules created when the kernel is built, use the following steps (performing the commands using \texttt{sudo}):
+
+\begin{itemize}
+\item Mount the second partition (the rootfs partition) of a microSD card that has had the full BeagleSNES file system image written to it.  \emph{Back up the \texttt{/lib/modules/3.7.10-x9} (BB-xM) or \texttt{/lib/modules/3.8.13-bone20.zImage} (BBB) directory in the root of that mounted partition.} 
+\item If building for a BB-xM, replace the \texttt{/lib/modules/3.7.10-x9} directory on the microSD card (\emph{after you have backed it up}) with the \texttt{deploy/mod/lib/modules/3.7.10-x9} directory that you just built.
+\item If building for a BBB, copy the file \texttt{deploy/3.8.13-bone20-modules.tar.gz} to the \texttt{/lib/modules} directory on the microSD card. \texttt{gunzip} and un\texttt{tar} the file.  Replace the \texttt{/lib/modules/3.8.13-bone20} directory on the microSD card (\emph{after you have backed it up}) with the \texttt{/lib/modules/lib/modules/3.8.13-bone20} directory.
+\item \texttt{sync} the microSD card's mounted rootfs partition's file system, then unmount it. 
+\end{itemize}
+
+\noindent{}You've just built the BeagleSNES kernel and installed it.  Insert the microSD card into the system, power it up, and it should now boot using your new kernel.
+
+\emph{Advanced Users:} If you are interested in using the latest kernel source and patches, fetch the latest code from Robert Nelson's Git repository and replace the \texttt{.config} in the kernel source with the \texttt{beaglesnes\_config} file from the top-level directory of the BeagleSNES kernel source.  The \texttt{beaglesnes\_config} file is a copy of the kernel configuration that is used when building the BeagleSNES kernel.  It will ensure that you build a kernel with the proper features enabled.  By default, the kernel from Git tries to be generic as possible by building a \emph{large} number of hardware drivers as modules.  BeagleSNES does not build most of these drivers, and the ones that it does need are linked directly into the kernel, rather than being built as modules.
+
+\section{BeagleSNES Application}\index{BeagleSNES Application}
+
+The BeagleSNES application is both the game selection menu front-end and the SNES emulator back-end.  Both components are built as a single binary.  The application has the following library dependencies:
+
+\begin{itemize}
+\item The Simple DirectMedia Library\footnote{\texttt{http://www.libsdl.org}} for general audio, video, and input.
+\item The SDL\_ttf library\footnote{\texttt{http://www.libsdl.org/projects/SDL\_ttf}} for rendering TrueType fonts.
+\item The SDL\_image library\footnote{\texttt{http://www.libsdl.org/projects/SDL\_image}} for loading image files of various formats.
+\item The SDL\_mixer library\footnote{\texttt{http://www.libsdl.org/projects/SDL\_mixer}} for loading and playing music and sound effects.
+\item The Expat library\footnote{\texttt{http://expat.sourceforge.net}} for parsing the XML \texttt{games.xml} file.
+\end{itemize}
+
+\noindent{}Because it can be difficult to build and install all of these libraries correctly using a cross-compiler tool chain, it is easiest to build both the libraries and the BeagleSNES application on the BB-xM or BBB.  The BeagleSNES full system image contains all of these libraries and header files, as well as a complete development tool chain.  These instructions will assume that you are building BeagleSNES inside of the full system image.  
+
+\begin{updateWarn}
+If you decide to use a package manager (like \texttt{apt-get}) to install the needed libraries, you're going to drag in a number of additional dependencies that you won't need.  Typically, SDL is built with X11 support, so your package manager will install a large number of X-Windows applications and libraries.  It is better to build the libraries manually than to install them via a package manager.  If you don't have the patience or experience to manually install the libraries and their dependencies, stick with using the libraries and headers already installed in the full file system image.  These libraries include only the most basic features of SDL (framebuffer console graphics, ALSA audio, and the joystick input subsystem).
+\end{updateWarn}
+
+The BeagleSNES application source code is available as a downloadable source code archive.  The source code is also installed inside the full system image\footnote{It is in the \texttt{/home/ubuntu/build/beaglesnes\_src} directory within the full system image.}.  To build the BeagleSNES application on a BB-xM or BBB system, use the following steps:
+
+\begin{itemize}
+\item Shell into the running BeagleSNES system (username "ubuntu", password "temppwd").  The easiest way to do this is via the serial debug interface\footnote{Read \texttt{http://elinux.org/BeagleBoardFAQ} for more information on setting up and using the serial debug interface}, though you can also use \texttt{ssh} to shell into the system via the ethernet interface.
+\item Enable swap space.  \texttt{swapfile} is a one gigabyte swap file that has already been created for you in the full system image.  You only need to turn on swapping by using the command: \texttt{sudo swapon /var/cache/swap/swapfile}
+\item \texttt{cd} into the \texttt{/home/ubuntu/build/beaglesnes\_src/sdl} directory.
+\item Execute the \texttt{configure} script in this directory.  The script should find the tool chain and all of the necessary libraries and headers to build the application.  For best performance, execute the \texttt{configure} script with the \texttt{-{}-enable-neon} option:
+\begin{commandBox}
+\texttt{ubuntu@beaglesnes\$  sudo ./configure -{}-enable-neon}
+\end{commandBox}
+\item Edit the \texttt{beagleboard.h} file to select which platform you are building for.  There are two \texttt{\#define} statements: one for \texttt{BEAGLEBONE\_BLACK} and one for \texttt{BEAGLEBOARD\_XM}. Uncomment the \texttt{\#define} that describes your system, and comment out the other one.
+\item If you have chosen to enable the \texttt{BEAGLEBONE\_BLACK} build via \texttt{beagleboard.h}, you can also comment in the "\texttt{\#define CAPE\_LCD3 1}" in \texttt{beagleboard.h} to enable the support for the LCD3 display instead of the HDMI video output.
+\item Execute a \texttt{make} command in this directory.  The application will now build, and it will take a while.  If you did not enable swapping, the system will exhaust its RAM and fail on this step.
+\item \emph{Optional:} Shrink the generated binary (and reduce its loading time) by stripping it via the command: \texttt{strip ./snes9x-sdl}
+\item Copy the generated \texttt{snes9x-sdl} binary to the \texttt{/home/ubuntu/beaglesnes} directory.  If you built a binary for BBB with HDMI video, name it \texttt{snes9x-sdl.BBB.HDMI}.  If you built a binary for BBB with HDMI video, name it \texttt{snes9x-sdl.BBB.LCD3}. If you built a binary for BB-xM, name it \texttt{snes9x-sdl.BBxM}.  These are the files that the \texttt{service.sh} script looks for.
+\item Execute a \texttt{sync} command. 
+\end{itemize}

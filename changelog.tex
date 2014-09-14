@@ -1,0 +1,188 @@
+\chapter{Project Changelog}
+
+\section{Changelog}\index{Changelog}
+
+\noindent{}{\bf Version 0.6 Release - 03 July 2014}
+
+\noindent{}\emph{General:}
+\begin{itemize}
+\item Updated the documentation.
+\end{itemize}
+
+\noindent{}\emph{Application:}
+\begin{itemize}
+\item Added GPIO input support (BBB targets).
+\item Added a splash screen to keep the user distracted while a background thread loads the GUI assets.
+\item Added support for the pause menu with snapshot load/save.
+\item Added gamepad and GPIO configuration support to the XML-based \texttt{games.xml} file.
+\item Cleaned up the emulator shutdown code so that a game can be cleanly exited and control will return to the front-end GUI.
+\item Changed from sync()-ing the filesystem to fsync()-ing specific files when saving snapshots, screenshots, saved games, etc.
+\item Fixed hi-res blitters that were smashing the stack on some games (Donkey Kong Country, Secret of Mana, Seiken Densetsu 3).
+\item Added a shrinking blitter to make the hi-res blitters work with a 320x240 display.
+\item Reenabled support for loading compressed ROMs (.zip, .gz).
+\item Added Expat libraries into the \texttt{configure} script.
+\item Cleaned up the XML parser a bit more to eliminate closing tag errors where there weren't actually errors.
+\item Added more aggressive optimization flags to the compile options to squeeze out a few more FPS. 
+\end{itemize}
+
+\noindent{}\emph{File System:}
+\begin{itemize}
+\item Added entries for \texttt{eth1} to \texttt{/etc/network/interfaces} for users having difficulty getting the BBB ethernet to initialize and pick up an IP via DHCP.
+\item Placed a device tree overlay for the CircuitCo Audio Cape (RevB) (\texttt{BB-BONE-AUDI-02}) in \texttt{/lib/firmware} in case anyone wants to try using it with the BBB. 
+\end{itemize}
+
+\noindent{}{\bf Version 0.5 Release - 18 February 2014}
+
+\noindent{}\emph{General:}
+\begin{itemize}
+\item Updated the documentation.
+\end{itemize}
+
+\noindent{}\emph{Application:}
+\begin{itemize}
+\item Changed the old game selection menu configuration file from \texttt{games.cfg} to the new XML-based \texttt{games.xml} format.
+\item Added support for the 320x240 LCD3 display.
+\item Added software volume control (mostly used by the LCD3 target).
+\item Changed the name of the \texttt{snes9x-sdl.BBB} binary to \texttt{snes9x-sdl.BBB.HDMI} (for the BBB HDMI target).
+\item Added the \texttt{snes9x-sdl.BBB.LCD3} binary (for the BBB LCD3 target).
+\item Changed the game selection GUI to pull its button mappings from the emulator configuration file.
+\item Moved the configuration, ROM, and image files to the \texttt{/boot} partition. 
+\end{itemize}
+
+\noindent{}\emph{Kernel:}
+\begin{itemize}
+\item Added controller driver support for ACRUX, DragonRise, GreenAsia/Pantherlord, I-Force, Sony PS3, X-Box, and ZeroPlus. 
+\end{itemize}
+
+\noindent{}\emph{Bootloader:}
+\begin{itemize}
+\item Updated the U-Boot bootloader for all targets to v2014.01. 
+\item Modified the \texttt{setup\_BBB.sh} script so that it is now two scripts: \texttt{setup\_BBB\_HDMI.sh} (for the BBB HDMI target) and \texttt{setup\_BBB\_LCD3.sh} (for the BBB LCD3 target).
+\item Setup the kernel command line arguments in the \texttt{setup\_BBB\_LCD3.sh} script to disable the HDMI cape.
+\end{itemize}
+
+\noindent{}\emph{File System:}
+\begin{itemize}
+\item Increased the \texttt{/boot} partition size from 64 megabytes to \textasciitilde950 megabytes.
+\item Decreased the \texttt{/rootfs} partition size to fill the remainder of the 4 gigabyte microSD card image. 
+\item Changed the \texttt{service.sh} script to detect whether the LCD3 cape is attached for BBB systems.
+\item Modified the \texttt{/etc/modes.fb} file to include a 320x240 mode for the new LCD3 display target.
+\item Added the Expat 2.1.0 library and headers to \texttt{/usr/local}.
+\end{itemize}
+
+\noindent{}{\bf Version 0.4 Release - 07 June 2013}
+
+\noindent{}\emph{General:}
+\begin{itemize}
+\item Reduced boot time from 20 seconds down to about 10-12 seconds in "fast boot" mode.
+\item Updated the documentation.
+\end{itemize}
+
+\noindent{}\emph{Application:}
+\begin{itemize}
+\item Added support for two gamepads via an external USB hub (BBB).
+\item Added support for an arbitrary number of games to be listed in the game selection menu.
+\item Removed the user space workaround that adds USB hotplugging (BBB).
+\end{itemize}
+
+\noindent{}\emph{Kernel:}
+\begin{itemize}
+\item Updated the kernel tree from 3.8.11 to 3.8.13 (BBB).
+\item Patched the kernel to fix issues with USB hotplugging and "babble interrupts" (BBB).
+\end{itemize}
+
+\noindent{}\emph{Bootloader:}
+\begin{itemize}
+\item Added the kernel command line \texttt{init=} option in \texttt{uEnv.txt} to use \texttt{init.sh} as the \texttt{init} process of the system for "fast boot" mode.
+\end{itemize}
+
+\noindent{}\emph{File System:}
+\begin{itemize}
+\item Added the \texttt{init.sh} script to act as the new \texttt{init} process of the system.
+\item Modified \texttt{init.sh} to mount various file systems, start the \texttt{udevd} daemon, and launch BeagleSNES's \texttt{service.sh} script.
+\end{itemize}
+
+\noindent{}{\bf Version 0.3 Release - 17 May 2013}
+
+\noindent{}\emph{General:}
+\begin{itemize}
+\item Added support for the BeagleBone Black platform.
+\item Added \texttt{setup\_BBB.sh} and \texttt{setup\_BBxM.sh} scripts in the boot partition to switch the full system image from BBB to BB-xM and back.
+\item Made BBB the default state of the full system image.
+\item Updated the documentation.
+\end{itemize}
+
+\noindent{}\emph{Application:}
+\begin{itemize}
+\item Modified the graphics to support 720x480 (BBB) and 640x480 (BB-xM) based upon preprocessor defines.
+\item Added support the dynamic plugging/unplugging of gamepads for BBB.
+\item Fixed a timing bug where the selection GUI might freeze.
+\item Fixed a bug where SRAM (saved games) was not being written out to the microSD card. Also added a \texttt{sync()} call on SRAM activity to ensure saved games are stored on the microSD card.
+\item Modified the \texttt{service.sh} launch script to detect whether the system is BBB or BB-xM and launch the appropriate binary.
+\end{itemize}
+
+\noindent{}\emph{Kernel:}
+\begin{itemize}
+\item Added a new Linux kernel tree (3.8.11) to support the BBB.  The BB-xM is still using the 3.7.10 kernel tree.
+\item Added a 720x480 kernel splash screen for the BBB port.
+\end{itemize}
+
+\noindent{}\emph{Bootloader:}
+\begin{itemize}
+\item U-boot has been upgraded from v2013.01 to v2013.04.
+\item The \texttt{beaglesnes\_build.sh} build script has been changed to have an additional configuration target for the BBB.
+\end{itemize}
+
+\noindent{}\emph{File System:}
+\begin{itemize}
+\item Both the BBxM and BBB kernels are in the \texttt{/boot} partition.  \texttt{BBB} and \texttt{BBxM} subdirectories were added to hold platform-specific bootloader and \texttt{uEnv.txt} files.
+\end{itemize}
+
+\noindent{}{\bf Version 0.2 Release - 23 April 2013}
+
+\noindent{}\emph{General:}
+\begin{itemize}
+\item Changed from analog video (S-Video) to digital video (DVI).
+\item Decreased boot time from about 25 seconds down to about 20 seconds.
+\item Improved gamepad support.
+\item Added a kernel splash screen.
+\item Published the first version of this documentation!
+\end{itemize}
+
+\noindent{}\emph{Application:}
+\begin{itemize}
+\item Changed resolution of game selection menu from 720x482 to 640x480.
+\item Changed resolution of emulator from 616x478 to 640x480.
+\item Added support the dynamic plugging/unplugging of gamepads.
+\item Removed several checks for movie playback and saved states from main emulation loop.
+\item Changed the internal emulator scaling algorithm from "Simple2x1" to "Smooth2x2" to accommodate for the increased sharpness of the digital video signal. 
+\item Moved the loading of background music and the rendering of dynamic text so that they occur after the BeagleSNES logo and gradient bar are loaded and rendered to the screen.  This gets \emph{something} up on the screen ASAP for the end-user.
+\end{itemize}
+\noindent{}\emph{Kernel:}
+\begin{itemize}
+\item Removed video encoder (VENC) support (S-Video support removed).
+\item Added parallel display interface (DPI) support, generic DPI panel driver, and TFP410 DPI-to-DVI chip driver (DVI support added).
+\item Built SMC9XXX network support directly into the kernel, rather than as a module.  Now no kernel modules are dynamically loaded.
+\item Added a 640x480 splash screen displayed during kernel bootstrapping by replacing the 80x80 tux boot icon with the splash image.
+\item Removed a bunch of device driver modules from the build, since they weren't actually being used anymore.
+\end{itemize}
+\noindent{}\emph{Bootloader:}
+\begin{itemize}
+\item Preliminary support for a bootloader splash screen was added (\texttt{dss\_init()} in \texttt{beagle.c}).
+\item Changed \texttt{mpurate} from \texttt{auto} to \texttt{800} in \texttt{uEnv.txt} to force the kernel to set the clock to 800 MHz immediately, rather than wait for the governor to adjust it.
+\item Cleaned up a bad PLL4 clock register setting that was preventing logging in through the debug serial output (\texttt{beagle.c}). 
+\item Changed the video configuration in \texttt{uEnv.txt} to use digital 640x480@60 Hz (DVI) instead of analog 720x482@30 Hz (NTSC).
+\end{itemize}
+\noindent{}\emph{File System:}
+\begin{itemize}
+\item The \texttt{service.sh} launch script for the BeagleSNES application is now started via the script \texttt{/etc/rc.local}, rather than as an "at reboot" \texttt{cron} job in \texttt{crontab}.  This gets the game selection menu up and available much quicker (prior to \texttt{tty} initilization).
+\item The \texttt{loadcpufreq}, \texttt{cpufrequtils}, and \texttt{ondemand} services were removed from all \texttt{/etc/rc?.d} directories.
+\item The rootfs file system was shrunk down from 7.5 gigabytes to 3.5 gigabytes.
+\end{itemize}
+\noindent{}{\bf Initial Release - 15 March 2013}
+\begin{itemize}
+\item Registered the \texttt{beaglesnes.org} domain name.
+\item Created the BeagleSNES SourceForge project.
+\item Created the project launch trailer video.
+\item Cleaned up the files and made them available on the web.
+\end{itemize}

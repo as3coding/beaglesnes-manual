@@ -1,0 +1,92 @@
+\chapter{BeagleSNES Kernel and Bootloader}
+
+\section{Overview}\index{Overview}
+
+BeagleSNES uses the U-Boot bootloader\footnote{\texttt{http://www.denx.de/wiki/U-Boot}} and a trimmed-down Linux kernel.  The configuration of both of these components impacts both the runtime performance of the system and the time necessary to boot the system.  A general timeline of the events that occur as the system boots is as follows:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{| l | l |} \hline
+%\toprule
+\textbf{Time (seconds)} & \textbf{Events Taking Place}\\ \hline
+%\midrule
+0 & System is powered up \\
+& Bootloader begins executing immediately \\
+& Bootloader fetches its configuration file from the boot partition \\ 
+& Bootloader initializes DVI video at a resolution of 1280x720 (BB-xM)\\ \hline
+2 & Bootloader has finished loading and decompressing the kernel \\
+& Kernel begins bootstrapping \\ 
+& Bootloader terminates execution \\ \hline
+5 & Kernel initializes DVI video at a resolution of 640x480 (BB-xM) \\
+& Kernel turns on framebuffer console (BB-xM) \\
+& Boot splash screen is displayed (BB-xM) \\ \hline
+8 & Kernel initializes HDMI video at a resolution of 720x480 (BBB) \\
+& Kernel turns on framebuffer console (BBB) \\
+& Boot splash screen is displayed (BBB) \\ 
+& \texttt{init.sh} script in the BeagleSNES image is executed \\ \hline
+10 & Boot splash screen disappears \\
+& BeagleSNES is launched via the \texttt{service.sh} script \\
+& Game selection menu logo and gradient bar appear on the screen \\ \hline
+12 & Game selection menu displays entire screen and begins playing audio \\
+& System is now accepting user input and is ready for use \\ \hline
+%\bottomrule
+\end{tabular}
+\caption{Timeline of BeagleSNES events, from power up to "usable system".}
+\end{table}
+
+While waiting 12 seconds for an embedded system to achieve a usable state is still quite a long time, earlier development versions of BeagleSNES would take as long as \emph{35 seconds} to go from power up to usable system.  There is still room for a great deal of improvement in the boot speed of BeagleSNES.  Other projects, such as SwiftBeagle\footnote{\texttt{http://code.google.com/p/swiftbeagle/}}, have done an excellent job discovering various ways that the bootloader and kernel can be changed in order to decrease boot time.  In this section, several of these points will be discussed as the bootloader and kernel of BeagleSNES are examined.
+
+\section{Bootloader}\index{Bootloader}
+
+BeagleSNES's U-Boot bootloader has had two noteworthy modifications: the standard 3-second delay prior to loading the kernel has been removed\footnote{This setting is located in the file \texttt{include/configs/omap3\_beagle.h} (BB-xM) and \texttt{include/configs/am335x\_evm.h} (BBB) in the bootloader source.  It is the \texttt{CONFIG\_BOOTDELAY} pre-processor define.} and preliminary support has been added for a bootloader splash screen\footnote{These modifications have been added to the file \texttt{board/ti/beagle/beagle.c} in the bootloader source.  Check out \texttt{dss\_init()}, which sets up the memory buffer and does some register adjustments.} for the BB-xM.  Version 2013.04 (used in BeagleSNES v0.4) is the earliest version of U-Boot that will work for BeagleSNES because it is the first version to include \emph{device tree} support\footnote{To learn more about the device tree and how it is used in the Linux kernel to describe hardware peripherals for embedded devices, go to \texttt{http://www.devicetree.org}} for the BBB's cape bus.  
+
+A BeagleSNES bootloader configuration file, \texttt{uEnv.txt}, exists for the BB-xM and both BBB boot configurations.  Each of the uEnv.txt files set a U-Boot environment variable called \texttt{bootargs}.  This value of this variable is the set of command line arguments that are passed to the Linux kernel when the kernel begins its bootstrapping process.  There are two sets of \texttt{bootargs} in each of the \texttt{uEnv.txt} files: one for a quicker-booting configuration that specifies the BeagleSNES \texttt{init.sh} script as the "init" process for the Linux kernel, and one for a slower-booting configuration that uses the default Linux \texttt{systemd}\footnote{To learn more about \texttt{systemd} and its role as a system and service manager for Linux, go to \texttt{http://www.freedesktop.org/wiki/Software/systemd}}  as the "init" process.  By default, the "fast boot" configuration is enabled, which enables BeagleSNES to get up and running as quickly as possible.
+
+The quicker-booting configuration allows the system to boot in about half of the time it takes the slower-booting configuration.  This is because the quicker configuration does not start many of the system daemons that are started in the slower configuration (since \texttt{systemd} is not used and the usual init scripts are not executed).  The quicker configuration performs only the bare minimum of remounting the root filesystem read-write, starting \texttt{udevd} (to create the device files for the USB gamepads in the \texttt{/dev} filesystem), and adjusting the ALSA mixer levels.  The downside to this is that many other important services, such as networking, are never started.  Aside from the difference in the "init" process that is used, both configurations for each platform specify \texttt{bootargs} that turn on debug output to the serial port, enable the DVI or HDMI video output at specific resolutions, and shut off the framebuffer's blinking cursor.
+
+\emph{Switching between the faster and slower boot configurations requires editing the \texttt{uEnv.txt} file.} The \texttt{bootargs} for both configurations are in each of the \texttt{uEnv.txt} files, so it is only a matter of commenting out the configuration that isn't needed and commenting in the configuration that is.  Make sure that only one configuration is commented in at a time.  Comments have been included in the \texttt{uEnv.txt} files to guide you.  The \texttt{uEnv.txt} files that come with BeagleSNES can be seen in Figures~\ref{fig:BBxM_uEnv} (for the BB-xM), \ref{fig:BBB-HDMI_uEnv} (for the BBB with HDMI), and \ref{fig:BBB-LCD3_uEnv} (for the BBB with LCD3).
+
+\begin{figure}[h]
+\lstinputlisting{BBxMuEnv.txt}
+\caption{BeagleSNES's BB-xM \texttt{uEnv.txt} bootloader configuration file.}\label{fig:BBxM_uEnv}
+\end{figure}
+\begin{figure}[h]
+\lstinputlisting{BBB-HDMI-uEnv.txt}
+\caption{BeagleSNES's BBB HDMI \texttt{uEnv.txt} bootloader configuration file.}\label{fig:BBB-HDMI_uEnv}
+\end{figure}
+\begin{figure}[h]
+\lstinputlisting{BBB-LCD3-uEnv.txt}
+\caption{BeagleSNES's BBB LCD3\texttt{uEnv.txt} bootloader configuration file.}\label{fig:BBB-LCD3_uEnv}
+\end{figure}
+
+\section{BeagleBoard-xM Kernel}\index{BeagleBoard-xM Kernel}
+
+BeagleSNES was originally developed specifically for the Rev C BB-xM. While the Linux kernel has good support for the BB-xM hardware (OMAP3, TWL4030, etc.), every embedded system kernel must be tuned and patched for the specific environment in which it will be deployed.  The BeagleBoard platforms are no exception.  BeagleSNES's kernel codebase uses a series of 207 kernel patches that have been contributed and vetted by the BB community.  While not every patch is specific to the BB-xM (BeagleBoard- and BeagleBone-specific patches are also applied), many of the patches increase system stability by improving voltage core management and thermal management.
+
+The kernel itself has been compiled to remove many features that aren't needed for BeagleSNES.  This has reduced the compressed size of the kernel from 3.4 megabytes with additional modules dynamically loaded down to a little less than two megabytes with no additional modules loaded.  While this might not seem like a big difference, it has reduced the boot time of BeagleSNES by about 6 seconds.  Roughly 200 ms of these savings are attributed to the reduction in time needed to load and decompress the smaller kernel.  The bulk of the savings comes from eliminating the time needed to initialize various kernel subsystems that are never be used.  For example, many security features (SELinux, address space layout randomization (ASLR), stack overflow protection), symmetrical multi-processing support, support for various file system types, SCSI support, etc. were all originally compiled into the kernel. 
+
+The BB-xM's DM3730 CPU begins running at a clock speed of 600 MHz, but is quickly changed to 800 MHz per the \texttt{mpurate} kernel command line option that is provided by the bootloader.  The "performance" governor\footnote{Option \texttt{CPU Power Management} -> \texttt{CPU Frequency scaling} in the kernel configuration menu.} forces the CPU clock rate to remain at its maximum rate of 800 MHz.  Originally, \texttt{mpurate} was set to "auto" and the "ondemand" governor was used by the kernel.  The high CPU utilization of the emulator would force the governor to adjust the clock speed from 600 MHz to 800 MHz once the BeagleSNES application began executing in user space.  This caused the system to boot more slowly (since the CPU clock was at 600 MHz for the entire kernel bootstrap process), so the \texttt{mpurate} and governor were changed accordingly.   
+
+While this CPU can theoretically be clocked at 1GHz, there are a few problems with doing so. The BeagleSNES kernel source lacks a patchset that existed in earlier kernel versions (2.6.36, 3.0) that handle the VDD1 voltage adjustment of the CPU. It is non-trivial to port this patch set to newer kernels. While the clock speed could be forced to 1GHz without this patch set, you will slowly fry your BB-xM's CPU while doing so. The system also becomes a bit unstable when you're pushing the CPU at 100\% at 1GHz, which leads to application crashes (including BeagleSNES). Therefore, the governor will only push the clock speed to a stable 800 MHz.
+
+\emph{An interesting note:} Titles that use Super FX\footnote{For more information on Super FX, refer to the Wikipedia article: \texttt{http://en.wikipedia.org/wiki/Super\_fx}} chips, such as "Star Fox", run really well when the system is clocked to 1GHz (5 FPS at 800 MHz versus 20-25 FPS at 1 GHz). The extra clock speed does make a big difference.
+
+\section{BeagleBone Black Kernel}\index{BeagleBone Black Kernel}
+
+When the BBB was first released in April 2013, the 3.8 Linux kernel was the OS kernel for the board.  The BBB's kernel branch consisted of the mainline 3.8 kernel source tree with hundreds of patches applied to it to support the BBB's functionality.  While the BBB's hardware is largely based upon that of its predecessor, the BeagleBone, the BBB's 3.8 kernel is quite different from the mature 3.2 kernel used by the BeagleBone.  Thus, the change from 3.2 to 3.8 for BBB led to new kernel features and new problems.
+
+The main advantage of using the new 3.8 kernel was the introduction of the Device Tree\footnote{Learn more about the Device Tree at \texttt{http://www.devicetree.org/Main\_Page}.} data structure. This data structure allows for a more-uniform way of defining processor pin multiplexing ("muxing"), identifying which kernel resources and drivers are associated with particular processor pins.  Unfortunately, the 3.8 kernel is a combination of different kernel subsystems and can be a bit tempermental at times.  BeagleSNES will be moving to the 3.12/3.13 kernel tree once more testing has been completed and BeagleSNES is properly adapted to use it.  Other than the newer features of the 3.8 kernel, the BBB's kernel is quite similar in nature to that of the BBxM: the "performance" CPU governor is used and the kernel has been trimmed down to reduce the kernel size, eliminate unneeded device drivers, and shorten kernel boot time.
+
+\section{Other Improvements to Boot Speed}\index{Other Improvements to Boot Speed}
+
+Other system customizations that contributed to a faster boot time are:
+
+\begin{itemize}
+\item Shrinking the size of the root file system partition from 7.5 gigabytes to about 3.5 gigabytes.  This reduces the file system mount time at system start up.
+\item Shutting off unneeded daemons.  By default, the Ubuntu Linux image that BeagleSNES is based on started standard daemons like the print spooler, Apache web server, lvm, dns-clean, fetchmail, etc..  These daemons slow down system start up and use the CPU for no purpose.
+\item Reducing the number of \texttt{tty} terminals.  There is no need for a dozen terminals on an embedded device, and it takes time and resources to start and maintain them all.
+\end{itemize}
+
+For further performance improvements, the place to begin is the removal of even more daemons.  The next place would be to remove unneeded files from the root file system, convert chunks of the remaining file system into read-only \texttt{cramfs} files, and then mount them to form a mostly read-only file system.  This will greatly reduce the portion of the file system that actually needs to be read-write (such as \texttt{/dev}, \texttt{/sys}, \texttt{/tmp}, etc.).  Moving to a lightweight shell, such as busybox\footnote{\texttt{http://www.busybox.net/}}, would allow for even more files to be removed.  
+
+The BeagleSNES menu and emulator are currently built in-place on the BB-xM and BBB platforms, so a complete toolchain and debugger are installed inside of the current BeagleSNES image for convenience.  These tools could also be removed to reduce the size of the system even further.  The 1 gigabyte swap file could also be removed, saving a great deal of space.

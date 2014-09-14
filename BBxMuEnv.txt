@@ -1,0 +1,19 @@
+#kernel_file=3.7.10-x9.uImage
+kernel_file=zImage
+console=ttyO2,115200n8
+mmcroot=/dev/mmcblk0p2 ro
+mmcrootfstype=ext4 rootwait fixrtc
+boot_fstype=fat
+xyz_load_image=${boot_fstype}load mmc 0:1 0x80300000 ${kernel_file}
+xyz_load_dtb=${boot_fstype}load mmc 0:1 0x815f0000 /dtbs/${dtb_file}
+xyz_mmcboot=run xyz_load_image; echo Booting from mmc
+video_args=setenv video vram=12MB omapfb.mode=dvi:640x480-16@60 omapdss.def_disp=dvi
+device_args=run video_args; run expansion_args; run mmcargs
+
+# This is for a slower boot, development setup
+#mmcargs=setenv bootargs console=${console} ${video} root=${mmcroot} rootfstype=${mmcrootfstype} ${expansion} coherent_pool=1M mpurate=800 console=blank vt.global_cursor_default=0
+# This is for a quick boot, non-development setup
+mmcargs=setenv bootargs console=${console} ${video} root=${mmcroot} rootfstype=${mmcrootfstype} ${expansion} coherent_pool=1M mpurate=800 console=blank vt.global_cursor_default=0 init=/home/ubuntu/beaglesnes/init.sh
+
+expansion_args=setenv expansion buddy=${buddy} buddy2=${buddy2} camera=${camera} wl12xx_clk=${wl12xx_clk}
+loaduimage=run xyz_mmcboot; run device_args; bootm 0x80300000

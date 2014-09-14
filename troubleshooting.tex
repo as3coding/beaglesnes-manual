@@ -1,0 +1,61 @@
+\chapter{Troubleshooting}
+
+\section{Overview}\index{Overview}
+
+{\bf If you are unable to \texttt{dd} the full system image to your microSD card:}
+\begin{itemize}
+\item Do you not have \texttt{bunzip2} on your system?  For Ubuntu users, you can \texttt{apt-get} it by installing the \texttt{bzip2} package.
+\item Is your download corrupt?  Does the MD5 hash for the file match the hash listed for the file at SourceForge? 
+\item Did you disable the write-protect switch on your microSD card?
+\item Do you have permissions to write to the raw microSD card device file?
+\item Are any pre-existing partitions on the microSD card currently mounted?  Unmount all partitions on the microSD card before performing the \texttt{dd}. 
+\end{itemize}
+
+\noindent{}{\bf If you can't get your system to boot after writing the full system image to your microSD card:}
+
+\begin{itemize}
+\item Are you using an external power supply (5VDC 2A)?  The system won't boot when using only USB power.
+\item Did you disable the write-protect switch on your microSD card?  The BeagleSNES still needs to write out log files to the local file system.
+\item Is there any output coming from the debug serial or FTDI port? If there is nothing, \texttt{dd} the full file system to the microSD card again after you verify the MD5 hash of the downloaded file.
+\item Did you cleanly unmount the microSD card from the Linux system that you used to \texttt{dd} the image to the card? Some Linux systems will auto-mount the microSD card as soon as it has a valid file system on it.  If you just pull the microSD card out when it is mounted, it is possible to damage the boot partition.
+\item Did you change the boot configuration from the default BBB HDMI configuration if you needed to do so?  If you are using a BBxM, you will need to change the boot configuration to the BBxM configuration to use the proper bootloader.
+\end{itemize}
+
+\noindent{}{\bf If you can see the boot splash screen, but the emulator won't start:}
+
+\begin{itemize}
+\item If you revert to the backup of the original \texttt{games.xml} file (you made that backup, right?) does the emulator start?  If so, you have a mistake in your \texttt{games.xml} file.
+\item If you do not see anything wrong with your \texttt{games.xml} file, does the debug output over serial or FTDI show any errors in parsing the XML? Any errors will give you hints as to where troubles may lie in your \texttt{games.xml}.
+\item Make sure that all box image and ROM filenames are correct.  The filenames are case-sensitive, and you do not need to add the directories to the filenames.
+\item If nothing else works, shell into the system via the network and try to manually execute the \texttt{service.sh} script in the application root directory.  You will need to \texttt{sudo} the command or be a superuser in order to do so.  Watch for any debug output that might give you a hint as to why it is not working.
+\item If all else fails, send us a bug report and we'll check it out.
+\end{itemize}
+
+\noindent{}{\bf If the game selection menu appears, but it does not respond to your USB gamepad:}
+
+\begin{itemize}
+\item Do you have the Tomee USB gamepad?  If not, you may have to play with the button mappings in the \texttt{games.xml} file.
+\item Is your gamepad plugged into the correct USB port?  Do you see the message telling you to plug in the "player one" gamepad?  Only a gamepad that is plugged into the "player one" USB port can control the menu selection screen.
+\item For the BBB, there is a known kernel bug that causes USB devices to not be enumerated by the USB bus.  Press the "Reset" button (button S1) or unplug and plug in the power cable to reset the system and try again.  It may take a few tries, unfortunately.  Watch the FTDI output for an \emph{Error -110} to see if this is the particular problem that you are seeing.  This problem appears to occur less often once the system has been running for a while, and it may take several tries before the errors go away and the USB subsystem enumerates properly.
+\item For the BBB, plugging an external USB hub into the host USB port can be very tempermental.  If using an external hub, plug in the hub and all controllers prior to starting the system.  Sometimes the external hub will stop responding if all controllers are removed from it.  An unpowered external hub will work, but it makes the BBB far more sensitive and can create problems when hotplugging controllers.
+\item Verify that your gamepad is operating properly by testing it with another computer.  
+\end{itemize}
+
+\noindent{}{\bf If the game selection menu starts, but is missing one or more of your titles:}
+
+\begin{itemize}
+\item If you do not see anything wrong with your \texttt{games.xml} file, does the debug output over serial or FTDI show any errors in parsing the XML? Any errors will give you hints as to where troubles may lie in your \texttt{games.xml}.  
+\item Did you use predefined entries in the XML for any special characters (Section~\ref{sec:games_xml})? Parsing of the XML will stop once an error is reached.
+\end{itemize}
+
+\noindent{}{\bf If the game selection menu starts, and you can launch a title, but then the screen goes blank and nothing happens:}
+
+\begin{itemize}
+\item Make sure the filename for the ROM is correct in the \texttt{games.xml} file.
+\item Make sure that the ROM is valid by executing it under another emulator.
+\item Make sure that the ROM is in the \texttt{rom} subdirectory of the \texttt{beaglesnes} directory in the \texttt{/boot} partition.
+\end{itemize}
+
+\begin{updateWarn}
+If you run into some other problem that is not covered here, please feel free to submit a bug report to Andrew at \texttt{hendersa@icculus.org}.
+\end{updateWarn}
